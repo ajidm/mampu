@@ -54,20 +54,15 @@ const mockUsers: EnrichedUser[] = [
 ];
 
 const STORAGE_KEY = "mampu:users-state";
+const MOUNT_FLAG = "__mampu_users_mounted__";
 
-function mockNavType(type: "navigate" | "reload" | "back_forward") {
-  Object.defineProperty(global, "performance", {
-    configurable: true,
-    value: {
-      getEntriesByType: (entryType: string) =>
-        entryType === "navigation" ? [{ type }] : [],
-    },
-  });
+function simulateBackNavigation() {
+  (window as Record<string, unknown>)[MOUNT_FLAG] = true;
 }
 
 beforeEach(() => {
   sessionStorage.clear();
-  mockNavType("navigate");
+  delete (window as Record<string, unknown>)[MOUNT_FLAG];
 });
 
 describe("UsersClient", () => {
@@ -184,7 +179,7 @@ describe("UsersClient", () => {
   });
 
   it("restores filter state from sessionStorage on back-navigation", async () => {
-    mockNavType("back_forward");
+    simulateBackNavigation();
     sessionStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ filterPending: "has-pending" })
@@ -197,14 +192,14 @@ describe("UsersClient", () => {
     expect(screen.getAllByText("Alice Smith").length).toBeGreaterThan(0);
   });
 
-  it("resets filter state on browser refresh (reload navigation)", async () => {
-    mockNavType("reload");
+  it("resets filter state on fresh mount (hard refresh / first load)", async () => {
+    // MOUNT_FLAG is absent (cleared in beforeEach) — simulates fresh JS context
     sessionStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ filterPending: "has-pending" })
     );
     render(<UsersClient users={mockUsers} />);
-    // All users should appear because saved state is discarded on reload
+    // All users should appear because saved state is discarded on fresh mount
     await waitFor(() => {
       expect(screen.getAllByText("Bob Jones").length).toBeGreaterThan(0);
     });

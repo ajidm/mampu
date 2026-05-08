@@ -16,6 +16,9 @@ import Pagination from "./Pagination";
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 10;
 const STORAGE_KEY = "mampu:users-state";
+// Survives React unmount/remount during client-side navigation but resets on hard refresh
+// (the JS module is re-executed on every full page load).
+const MOUNT_FLAG = "__mampu_users_mounted__";
 
 interface PersistedState {
   q: string;
@@ -76,14 +79,19 @@ export default function UsersClient({ users }: Props) {
   const [pageSize,      setPageSize]      = useState(DEFAULT_PAGE_SIZE);
 
   // Restore state from sessionStorage after hydration (client-only, runs once on mount).
-  // On a browser refresh the saved state is discarded; on back-navigation it is restored.
+  // First mount in a fresh JS context (hard refresh): clear any stale state and skip restore.
+  // Subsequent mounts within the same JS context (client-side back-navigation): restore state.
   useEffect(
     () => {
-      const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-      if (nav?.type === "reload") {
+      const w = window as Record<string, unknown>;
+      const hasBeenMountedBefore = w[MOUNT_FLAG] === true;
+      w[MOUNT_FLAG] = true;
+
+      if (!hasBeenMountedBefore) {
         sessionStorage.removeItem(STORAGE_KEY);
         return;
       }
+
       const s = loadState();
       /* eslint-disable react-hooks/set-state-in-effect */
       if (s.q             !== undefined) setQ(s.q);
