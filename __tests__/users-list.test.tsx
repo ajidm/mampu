@@ -99,20 +99,34 @@ describe("UsersClient", () => {
     expect(screen.getByRole("button", { name: /clear filters/i })).toBeInTheDocument();
   });
 
-  it("filters by has-pending filter", () => {
-    mockSearchParams.set("filter", "has-pending");
+  it("filters by has-pending (fpend param)", () => {
+    mockSearchParams.set("fpend", "has-pending");
     render(<UsersClient users={mockUsers} />);
     // Bob has 0 pending — should not appear
     expect(screen.queryByText("Bob Jones")).not.toBeInTheDocument();
-    // Alice and Charlie have pending todos — each appears twice (table + cards, both rendered)
     expect(screen.getAllByText("Alice Smith").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Charlie Brown").length).toBeGreaterThan(0);
   });
 
-  it("filters by no-completed filter", () => {
-    mockSearchParams.set("filter", "no-completed");
+  it("filters by no-completed (fc param) — no match shows empty state", () => {
+    mockSearchParams.set("fc", "no-completed");
     render(<UsersClient users={mockUsers} />);
-    // Only users with completedTodos === 0 should appear; none in this set
+    // All mock users have completedTodos > 0 — none pass the filter
+    expect(screen.getByText(/no users match/i)).toBeInTheDocument();
+  });
+
+  it("filters by has-posts (fp param)", () => {
+    mockSearchParams.set("fp", "has-posts");
+    render(<UsersClient users={mockUsers} />);
+    // All mock users have totalPosts > 0 — all should appear
+    expect(screen.getAllByText("Alice Smith").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Bob Jones").length).toBeGreaterThan(0);
+  });
+
+  it("filters by no-posts (fp param) — no match shows empty state", () => {
+    mockSearchParams.set("fp", "no-posts");
+    render(<UsersClient users={mockUsers} />);
+    // All mock users have posts — none pass
     expect(screen.getByText(/no users match/i)).toBeInTheDocument();
   });
 

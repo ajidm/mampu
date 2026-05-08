@@ -44,4 +44,6 @@ export interface EnrichedUser extends User {
 }
 
 export type SortKey = "name-asc" | "name-desc" | "pending-desc" | "posts-desc";
-export type FilterKey = "all" | "has-pending" | "no-completed";
+export type PostsFilter     = "all" | "has-posts"      | "no-posts";
+export type CompletedFilter = "all" | "has-completed"  | "no-completed";
+export type PendingFilter   = "all" | "has-pending"    | "no-pending";
