@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UsersClient from "@/components/UsersClient";
+import SkeletonTable from "@/components/SkeletonTable";
+import UsersError from "@/app/users/error";
 import type { EnrichedUser } from "@/lib/types";
 import { computeActivitySignals } from "@/lib/api";
 
@@ -254,5 +256,38 @@ describe("computeActivitySignals", () => {
     expect(result[0].totalPosts).toBe(0);
     expect(result[0].completedTodos).toBe(0);
     expect(result[0].pendingTodos).toBe(0);
+  });
+});
+
+describe("SkeletonTable (loading state)", () => {
+  it("renders with aria-busy=true", () => {
+    const { container } = render(<SkeletonTable />);
+    expect(container.firstChild).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("has accessible label for screen readers", () => {
+    render(<SkeletonTable />);
+    expect(screen.getByLabelText("Loading users")).toBeInTheDocument();
+  });
+
+  it("renders animated placeholder elements", () => {
+    const { container } = render(<SkeletonTable />);
+    expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
+  });
+});
+
+describe("UsersError (error state)", () => {
+  const baseError = Object.assign(new Error("fetch failed"), { digest: "123" });
+
+  it("renders a failure message", () => {
+    render(<UsersError error={baseError} reset={jest.fn()} />);
+    expect(screen.getByText(/Failed to load users/i)).toBeInTheDocument();
+  });
+
+  it("calls reset when the Retry button is clicked", async () => {
+    const reset = jest.fn();
+    render(<UsersError error={baseError} reset={reset} />);
+    await userEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(reset).toHaveBeenCalledTimes(1);
   });
 });

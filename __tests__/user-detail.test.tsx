@@ -4,6 +4,8 @@ import PostsList from "@/components/PostsList";
 import TodosList from "@/components/TodosList";
 import EmptyState from "@/components/EmptyState";
 import ErrorAlert from "@/components/ErrorAlert";
+import SkeletonDetail from "@/components/SkeletonDetail";
+import UserDetailError from "@/app/users/[id]/error";
 import type { Post, Todo } from "@/lib/types";
 
 jest.mock("next/link", () => {
@@ -144,5 +146,43 @@ describe("ErrorAlert", () => {
   it("has role=alert for accessibility", () => {
     render(<ErrorAlert message="Error" />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+});
+
+describe("SkeletonDetail (loading state)", () => {
+  it("renders with aria-busy=true", () => {
+    const { container } = render(<SkeletonDetail />);
+    expect(container.firstChild).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("has accessible label for screen readers", () => {
+    render(<SkeletonDetail />);
+    expect(screen.getByLabelText("Loading user details")).toBeInTheDocument();
+  });
+
+  it("renders animated placeholder elements", () => {
+    const { container } = render(<SkeletonDetail />);
+    expect(container.querySelector(".animate-pulse")).toBeInTheDocument();
+  });
+});
+
+describe("UserDetailError (error state)", () => {
+  const baseError = Object.assign(new Error("fetch failed"), { digest: "456" });
+
+  it("renders a failure message", () => {
+    render(<UserDetailError error={baseError} reset={jest.fn()} />);
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+  });
+
+  it("calls reset when the Retry button is clicked", async () => {
+    const reset = jest.fn();
+    render(<UserDetailError error={baseError} reset={reset} />);
+    await userEvent.click(screen.getByRole("button", { name: /retry/i }));
+    expect(reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("includes a Back to list link", () => {
+    render(<UserDetailError error={baseError} reset={jest.fn()} />);
+    expect(screen.getByRole("link", { name: /back to list/i })).toBeInTheDocument();
   });
 });
