@@ -3,13 +3,12 @@ import type { EnrichedUser } from "@/lib/types";
 
 interface Props {
   user: EnrichedUser;
-  backParams: string;
 }
 
-export default function UserCard({ user, backParams }: Props) {
+export default function UserCard({ user }: Props) {
   return (
     <Link
-      href={`/users/${user.id}?${backParams}`}
+      href={`/users/${user.id}`}
       aria-label={`View details for ${user.name}`}
       className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
     >

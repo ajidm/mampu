@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type {
   EnrichedUser,
   SortKey,
@@ -16,106 +15,117 @@ import Pagination from "./Pagination";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 10;
+const STORAGE_KEY = "mampu:users-state";
+
+interface PersistedState {
+  q: string;
+  sort: SortKey;
+  filterPosts: PostsFilter;
+  filterComp: CompletedFilter;
+  filterPending: PendingFilter;
+  page: number;
+  pageSize: number;
+}
+
+function loadState(): Partial<PersistedState> {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Partial<PersistedState>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveState(state: PersistedState) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
 
 interface Props {
   users: EnrichedUser[];
 }
 
 export default function UsersClient({ users }: Props) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const q             = searchParams.get("q") ?? "";
-  const sort          = (searchParams.get("sort")      as SortKey)          ?? "name-asc";
-  const filterPosts   = (searchParams.get("fp")        as PostsFilter)      ?? "all";
-  const filterComp    = (searchParams.get("fc")        as CompletedFilter)  ?? "all";
-  const filterPending = (searchParams.get("fpend")     as PendingFilter)    ?? "all";
-  const page          = Number(searchParams.get("page") ?? "1");
-  const pageSize      = PAGE_SIZE_OPTIONS.includes(Number(searchParams.get("size")))
-    ? Number(searchParams.get("size"))
-    : DEFAULT_PAGE_SIZE;
+  const [q,             setQ]             = useState("");
+  const [sort,          setSort]          = useState<SortKey>("name-asc");
+  const [filterPosts,   setFilterPosts]   = useState<PostsFilter>("all");
+  const [filterComp,    setFilterComp]    = useState<CompletedFilter>("all");
+  const [filterPending, setFilterPending] = useState<PendingFilter>("all");
+  const [page,          setPage]          = useState(1);
+  const [pageSize,      setPageSize]      = useState(DEFAULT_PAGE_SIZE);
+
+  // Restore state from sessionStorage after hydration
+  useEffect(() => {
+    const s = loadState();
+    if (s.q             !== undefined) setQ(s.q);
+    if (s.sort          !== undefined) setSort(s.sort);
+    if (s.filterPosts   !== undefined) setFilterPosts(s.filterPosts);
+    if (s.filterComp    !== undefined) setFilterComp(s.filterComp);
+    if (s.filterPending !== undefined) setFilterPending(s.filterPending);
+    if (s.page          !== undefined) setPage(s.page);
+    if (s.pageSize      !== undefined) setPageSize(s.pageSize);
+  }, []);
+
+  // Persist state to sessionStorage on every change
+  useEffect(() => {
+    saveState({ q, sort, filterPosts, filterComp, filterPending, page, pageSize });
+  }, [q, sort, filterPosts, filterComp, filterPending, page, pageSize]);
 
   const hasActiveFilter =
     !!q.trim() ||
     filterPosts !== "all" ||
-    filterComp !== "all" ||
+    filterComp  !== "all" ||
     filterPending !== "all";
 
-  const updateParams = useCallback(
-    (updates: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([k, v]) => {
-        if (v && v !== "all") params.set(k, v);
-        else params.delete(k);
-      });
-      params.set("page", "1");
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [searchParams, pathname, router]
-  );
+  // Derived list
+  let processed = [...users];
 
-  const backParams = searchParams.toString();
+  if (q.trim()) {
+    const lower = q.trim().toLowerCase();
+    processed = processed.filter(
+      (u) =>
+        u.name.toLowerCase().includes(lower) ||
+        u.email.toLowerCase().includes(lower)
+    );
+  }
+  if (filterPosts   === "has-posts")      processed = processed.filter((u) => u.totalPosts > 0);
+  if (filterPosts   === "no-posts")       processed = processed.filter((u) => u.totalPosts === 0);
+  if (filterComp    === "has-completed")  processed = processed.filter((u) => u.completedTodos > 0);
+  if (filterComp    === "no-completed")   processed = processed.filter((u) => u.completedTodos === 0);
+  if (filterPending === "has-pending")    processed = processed.filter((u) => u.pendingTodos > 0);
+  if (filterPending === "no-pending")     processed = processed.filter((u) => u.pendingTodos === 0);
 
-  const processed = useMemo(() => {
-    let result = [...users];
-
-    if (q.trim()) {
-      const lower = q.trim().toLowerCase();
-      result = result.filter(
-        (u) =>
-          u.name.toLowerCase().includes(lower) ||
-          u.email.toLowerCase().includes(lower)
-      );
-    }
-
-    if (filterPosts === "has-posts")   result = result.filter((u) => u.totalPosts > 0);
-    if (filterPosts === "no-posts")    result = result.filter((u) => u.totalPosts === 0);
-    if (filterComp  === "has-completed") result = result.filter((u) => u.completedTodos > 0);
-    if (filterComp  === "no-completed")  result = result.filter((u) => u.completedTodos === 0);
-    if (filterPending === "has-pending") result = result.filter((u) => u.pendingTodos > 0);
-    if (filterPending === "no-pending")  result = result.filter((u) => u.pendingTodos === 0);
-
-    result.sort((a, b) => {
-      if (sort === "name-asc")    return a.name.localeCompare(b.name);
-      if (sort === "name-desc")   return b.name.localeCompare(a.name);
-      if (sort === "pending-desc") return b.pendingTodos - a.pendingTodos;
-      if (sort === "posts-desc")  return b.totalPosts - a.totalPosts;
-      return 0;
-    });
-
-    return result;
-  }, [users, q, sort, filterPosts, filterComp, filterPending]);
+  processed.sort((a, b) => {
+    if (sort === "name-asc")     return a.name.localeCompare(b.name);
+    if (sort === "name-desc")    return b.name.localeCompare(a.name);
+    if (sort === "pending-desc") return b.pendingTodos - a.pendingTodos;
+    if (sort === "posts-desc")   return b.totalPosts - a.totalPosts;
+    return 0;
+  });
 
   const totalPages = Math.max(1, Math.ceil(processed.length / pageSize));
   const safePage   = Math.min(page, totalPages);
   const slice      = processed.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const handleSort = (key: SortKey) => {
-    let nextSort: SortKey = key;
-    if (key === "name-asc" && sort === "name-asc")   nextSort = "name-desc";
-    else if (key === "name-asc" && sort === "name-desc") nextSort = "name-asc";
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("sort", nextSort);
-    params.set("page", "1");
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    setSort((prev) => {
+      if (key === "name-asc" && prev === "name-asc") return "name-desc";
+      if (key === "name-asc" && prev === "name-desc") return "name-asc";
+      return key;
+    });
+    setPage(1);
   };
 
-  const handleSearch = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set("q", value); else params.delete("q");
-    params.set("page", "1");
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  const clearAll = () => {
+    setQ("");
+    setFilterPosts("all");
+    setFilterComp("all");
+    setFilterPending("all");
+    setPage(1);
   };
-
-  const handlePage = (next: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(next));
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
-
-  const clearAll = () => router.replace(pathname, { scroll: false });
 
   return (
     <div className="space-y-4">
@@ -150,26 +160,23 @@ export default function UsersClient({ users }: Props) {
             type="search"
             placeholder="Search by name or email…"
             value={q}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setPage(1); }}
             aria-label="Search users"
             className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
 
-        {/* Specific filters */}
+        {/* Filters + display */}
         <div className="flex flex-wrap gap-3">
-          {/* Posts filter */}
+          {/* Posts */}
           <div className="flex items-center gap-2">
-            <label
-              htmlFor="filter-posts"
-              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
-            >
+            <label htmlFor="filter-posts" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Posts
             </label>
             <select
               id="filter-posts"
               value={filterPosts}
-              onChange={(e) => updateParams({ fp: e.target.value })}
+              onChange={(e) => { setFilterPosts(e.target.value as PostsFilter); setPage(1); }}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="all">All</option>
@@ -178,18 +185,15 @@ export default function UsersClient({ users }: Props) {
             </select>
           </div>
 
-          {/* Completed filter */}
+          {/* Completed */}
           <div className="flex items-center gap-2">
-            <label
-              htmlFor="filter-completed"
-              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
-            >
+            <label htmlFor="filter-completed" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Completed
             </label>
             <select
               id="filter-completed"
               value={filterComp}
-              onChange={(e) => updateParams({ fc: e.target.value })}
+              onChange={(e) => { setFilterComp(e.target.value as CompletedFilter); setPage(1); }}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="all">All</option>
@@ -198,18 +202,15 @@ export default function UsersClient({ users }: Props) {
             </select>
           </div>
 
-          {/* Pending filter */}
+          {/* Pending */}
           <div className="flex items-center gap-2">
-            <label
-              htmlFor="filter-pending"
-              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
-            >
+            <label htmlFor="filter-pending" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Pending
             </label>
             <select
               id="filter-pending"
               value={filterPending}
-              onChange={(e) => updateParams({ fpend: e.target.value })}
+              onChange={(e) => { setFilterPending(e.target.value as PendingFilter); setPage(1); }}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="all">All</option>
@@ -218,23 +219,15 @@ export default function UsersClient({ users }: Props) {
             </select>
           </div>
 
-          {/* Display (per page) */}
+          {/* Display per page */}
           <div className="flex items-center gap-2">
-            <label
-              htmlFor="page-size"
-              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
-            >
+            <label htmlFor="page-size" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Show
             </label>
             <select
               id="page-size"
               value={pageSize}
-              onChange={(e) => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("size", e.target.value);
-                params.set("page", "1");
-                router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-              }}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               {PAGE_SIZE_OPTIONS.map((n) => (
@@ -247,30 +240,19 @@ export default function UsersClient({ users }: Props) {
 
       {slice.length === 0 ? (
         <EmptyState
-          message={
-            hasActiveFilter
-              ? "No users match your current search or filter."
-              : "No users found."
-          }
+          message={hasActiveFilter ? "No users match your current search or filter." : "No users found."}
           actionLabel={hasActiveFilter ? "Clear filters" : undefined}
           onAction={hasActiveFilter ? clearAll : undefined}
         />
       ) : (
         <>
-          {/* Desktop table */}
           <div className="hidden md:block">
-            <UserTable
-              rows={slice}
-              backParams={backParams}
-              sortKey={sort}
-              onSort={handleSort}
-            />
+            <UserTable rows={slice} sortKey={sort} onSort={handleSort} />
           </div>
 
-          {/* Mobile cards */}
           <div className="grid gap-3 md:hidden">
             {slice.map((user) => (
-              <UserCard key={user.id} user={user} backParams={backParams} />
+              <UserCard key={user.id} user={user} />
             ))}
           </div>
 
@@ -279,7 +261,7 @@ export default function UsersClient({ users }: Props) {
             totalPages={totalPages}
             totalItems={processed.length}
             pageSize={pageSize}
-            onPageChange={handlePage}
+            onPageChange={setPage}
           />
         </>
       )}

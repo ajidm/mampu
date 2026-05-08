@@ -3,7 +3,6 @@ import type { EnrichedUser, SortKey } from "@/lib/types";
 
 interface Props {
   rows: EnrichedUser[];
-  backParams: string;
   sortKey: SortKey;
   onSort: (key: SortKey) => void;
 }
@@ -27,7 +26,7 @@ function ariaSortValue(
   return "none";
 }
 
-export default function UserTable({ rows, backParams, sortKey, onSort }: Props) {
+export default function UserTable({ rows, sortKey, onSort }: Props) {
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
       <table className="w-full text-sm" role="grid">
@@ -69,7 +68,7 @@ export default function UserTable({ rows, backParams, sortKey, onSort }: Props) 
             >
               <td className="px-4 py-3 font-medium text-gray-900">
                 <Link
-                  href={`/users/${user.id}?${backParams}`}
+                  href={`/users/${user.id}`}
                   className="block truncate max-w-[200px] text-blue-700 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
                   aria-label={`View details for ${user.name}`}
                 >

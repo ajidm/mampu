@@ -7,7 +7,6 @@ import TodosList from "@/components/TodosList";
 
 interface Props {
   params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string>>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -24,9 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function UserDetailPage({ params, searchParams }: Props) {
+export default async function UserDetailPage({ params }: Props) {
   const { id } = await params;
-  const backQuery = await searchParams;
 
   const userId = Number(id);
   if (!Number.isInteger(userId) || userId <= 0) notFound();
@@ -39,16 +37,11 @@ export default async function UserDetailPage({ params, searchParams }: Props) {
 
   if (!user) notFound();
 
-  const backHref =
-    Object.keys(backQuery).length > 0
-      ? `/users?${new URLSearchParams(backQuery).toString()}`
-      : "/users";
-
   return (
     <div className="space-y-6">
       {/* Back link */}
       <Link
-        href={backHref}
+        href="/users"
         className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
       >
         ← Back to list
