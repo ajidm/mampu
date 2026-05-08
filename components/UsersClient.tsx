@@ -155,10 +155,10 @@ export default function UsersClient({ users }: Props) {
         {/* Specific filters */}
         <div className="flex flex-wrap gap-3">
           {/* Posts filter */}
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
             <label
               htmlFor="filter-posts"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
             >
               Posts
             </label>
@@ -175,10 +175,10 @@ export default function UsersClient({ users }: Props) {
           </div>
 
           {/* Completed filter */}
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
             <label
               htmlFor="filter-completed"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
             >
               Completed
             </label>
@@ -195,10 +195,10 @@ export default function UsersClient({ users }: Props) {
           </div>
 
           {/* Pending filter */}
-          <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
             <label
               htmlFor="filter-pending"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500"
+              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
             >
               Pending
             </label>
