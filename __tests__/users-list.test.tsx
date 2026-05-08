@@ -55,8 +55,19 @@ const mockUsers: EnrichedUser[] = [
 
 const STORAGE_KEY = "mampu:users-state";
 
+function mockNavType(type: "navigate" | "reload" | "back_forward") {
+  Object.defineProperty(global, "performance", {
+    configurable: true,
+    value: {
+      getEntriesByType: (entryType: string) =>
+        entryType === "navigation" ? [{ type }] : [],
+    },
+  });
+}
+
 beforeEach(() => {
   sessionStorage.clear();
+  mockNavType("navigate");
 });
 
 describe("UsersClient", () => {
@@ -172,7 +183,8 @@ describe("UsersClient", () => {
     expect(uniqueNames.size).toBe(10);
   });
 
-  it("restores filter state from sessionStorage on mount", async () => {
+  it("restores filter state from sessionStorage on back-navigation", async () => {
+    mockNavType("back_forward");
     sessionStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ filterPending: "has-pending" })
@@ -183,6 +195,21 @@ describe("UsersClient", () => {
       expect(screen.queryByText("Bob Jones")).not.toBeInTheDocument();
     });
     expect(screen.getAllByText("Alice Smith").length).toBeGreaterThan(0);
+  });
+
+  it("resets filter state on browser refresh (reload navigation)", async () => {
+    mockNavType("reload");
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ filterPending: "has-pending" })
+    );
+    render(<UsersClient users={mockUsers} />);
+    // All users should appear because saved state is discarded on reload
+    await waitFor(() => {
+      expect(screen.getAllByText("Bob Jones").length).toBeGreaterThan(0);
+    });
+    expect(screen.getAllByText("Alice Smith").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Charlie Brown").length).toBeGreaterThan(0);
   });
 
   it("persists filter state to sessionStorage on change", async () => {

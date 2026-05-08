@@ -75,9 +75,15 @@ export default function UsersClient({ users }: Props) {
   const [page,          setPage]          = useState(1);
   const [pageSize,      setPageSize]      = useState(DEFAULT_PAGE_SIZE);
 
-  // Restore state from sessionStorage after hydration (client-only, runs once on mount)
+  // Restore state from sessionStorage after hydration (client-only, runs once on mount).
+  // On a browser refresh the saved state is discarded; on back-navigation it is restored.
   useEffect(
     () => {
+      const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+      if (nav?.type === "reload") {
+        sessionStorage.removeItem(STORAGE_KEY);
+        return;
+      }
       const s = loadState();
       /* eslint-disable react-hooks/set-state-in-effect */
       if (s.q             !== undefined) setQ(s.q);
