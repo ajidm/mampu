@@ -24,7 +24,7 @@ const MOUNT_FLAG = "__mampu_users_mounted__";
 // Returns saved state only when coming back via client-side navigation; returns {} otherwise.
 function getInitialState(): Partial<PersistedState> {
   if (typeof window === "undefined") return {};
-  const w = window as Record<string, unknown>;
+  const w = window as unknown as Record<string, unknown>;
   return w[MOUNT_FLAG] === true ? loadState() : {};
 }
 
@@ -95,7 +95,7 @@ export default function UsersClient({ users }: Props) {
   // On mount: mark the JS context as "active" so back-navigations can restore state.
   // On first-ever mount (MOUNT_FLAG absent = hard refresh), also clear any stale sessionStorage.
   useEffect(() => {
-    const w = window as Record<string, unknown>;
+    const w = window as unknown as Record<string, unknown>;
     if (w[MOUNT_FLAG] !== true) sessionStorage.removeItem(STORAGE_KEY);
     w[MOUNT_FLAG] = true;
   }, []);
