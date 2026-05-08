@@ -117,17 +117,6 @@ export default function UsersClient({ users }: Props) {
             <option value="has-pending">Has pending todos</option>
             <option value="no-completed">No completed todos</option>
           </select>
-          <select
-            value={sort}
-            onChange={(e) => handleSort(e.target.value as SortKey)}
-            aria-label="Sort users"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="name-asc">Name A→Z</option>
-            <option value="name-desc">Name Z→A</option>
-            <option value="pending-desc">Most pending</option>
-            <option value="posts-desc">Most posts</option>
-          </select>
         </div>
       </div>
 

@@ -118,16 +118,14 @@ describe("UsersClient", () => {
 
   it("sorts by name ascending by default", () => {
     render(<UsersClient users={mockUsers} />);
-    // Use table row links (exact text match) for order verification
     const links = screen.getAllByRole("link", { name: /^View details for/ });
-    const names = links.map((l) => l.getAttribute("aria-label")?.replace("View details for ", ""));
-    const uniqueNames = [...new Set(names)];
+    const uniqueNames = [...new Set(links.map((l) => l.getAttribute("aria-label")?.replace("View details for ", "")))];
     expect(uniqueNames[0]).toBe("Alice Smith");
     expect(uniqueNames[1]).toBe("Bob Jones");
     expect(uniqueNames[2]).toBe("Charlie Brown");
   });
 
-  it("sorts by name descending when sort param is name-desc", () => {
+  it("sorts by name descending via URL param (triggered by table header click)", () => {
     mockSearchParams.set("sort", "name-desc");
     render(<UsersClient users={mockUsers} />);
     const links = screen.getAllByRole("link", { name: /^View details for/ });
@@ -135,7 +133,7 @@ describe("UsersClient", () => {
     expect(uniqueNames[0]).toBe("Charlie Brown");
   });
 
-  it("sorts by most pending todos", () => {
+  it("sorts by most pending todos via URL param (triggered by table header click)", () => {
     mockSearchParams.set("sort", "pending-desc");
     render(<UsersClient users={mockUsers} />);
     const links = screen.getAllByRole("link", { name: /^View details for/ });
