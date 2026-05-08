@@ -16,9 +16,17 @@ import Pagination from "./Pagination";
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 10;
 const STORAGE_KEY = "mampu:users-state";
-// Survives React unmount/remount during client-side navigation but resets on hard refresh
-// (the JS module is re-executed on every full page load).
+// Set on the window object after the first mount; absent in a fresh JS context (hard refresh).
+// Survives client-side unmount/remount (back-navigation) within the same tab session.
 const MOUNT_FLAG = "__mampu_users_mounted__";
+
+// Called once per component mount via useState lazy initializers (runs before any effects).
+// Returns saved state only when coming back via client-side navigation; returns {} otherwise.
+function getInitialState(): Partial<PersistedState> {
+  if (typeof window === "undefined") return {};
+  const w = window as Record<string, unknown>;
+  return w[MOUNT_FLAG] === true ? loadState() : {};
+}
 
 interface PersistedState {
   q: string;
@@ -70,41 +78,27 @@ function Badge({ label, onRemove }: { label: string; onRemove: () => void }) {
 export default function UsersClient({ users }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [q,             setQ]             = useState("");
-  const [sort,          setSort]          = useState<SortKey>("name-asc");
-  const [filterPosts,   setFilterPosts]   = useState<PostsFilter>("all");
-  const [filterComp,    setFilterComp]    = useState<CompletedFilter>("all");
-  const [filterPending, setFilterPending] = useState<PendingFilter>("all");
-  const [page,          setPage]          = useState(1);
-  const [pageSize,      setPageSize]      = useState(DEFAULT_PAGE_SIZE);
+  // State is initialised from sessionStorage on back-navigation (MOUNT_FLAG already set),
+  // or from defaults on a fresh load / hard refresh (MOUNT_FLAG absent).
+  // Using lazy initialisers means the save effect captures the correct values from render 1,
+  // which avoids a Strict Mode race where the save effect would overwrite sessionStorage with
+  // defaults before the restore effect could read the real saved values.
+  const [_init] = useState<Partial<PersistedState>>(getInitialState);
+  const [q,             setQ]             = useState(_init.q             ?? "");
+  const [sort,          setSort]          = useState<SortKey>(_init.sort  ?? "name-asc");
+  const [filterPosts,   setFilterPosts]   = useState<PostsFilter>(_init.filterPosts  ?? "all");
+  const [filterComp,    setFilterComp]    = useState<CompletedFilter>(_init.filterComp ?? "all");
+  const [filterPending, setFilterPending] = useState<PendingFilter>(_init.filterPending ?? "all");
+  const [page,          setPage]          = useState(_init.page           ?? 1);
+  const [pageSize,      setPageSize]      = useState(_init.pageSize       ?? DEFAULT_PAGE_SIZE);
 
-  // Restore state from sessionStorage after hydration (client-only, runs once on mount).
-  // First mount in a fresh JS context (hard refresh): clear any stale state and skip restore.
-  // Subsequent mounts within the same JS context (client-side back-navigation): restore state.
-  useEffect(
-    () => {
-      const w = window as Record<string, unknown>;
-      const hasBeenMountedBefore = w[MOUNT_FLAG] === true;
-      w[MOUNT_FLAG] = true;
-
-      if (!hasBeenMountedBefore) {
-        sessionStorage.removeItem(STORAGE_KEY);
-        return;
-      }
-
-      const s = loadState();
-      /* eslint-disable react-hooks/set-state-in-effect */
-      if (s.q             !== undefined) setQ(s.q);
-      if (s.sort          !== undefined) setSort(s.sort);
-      if (s.filterPosts   !== undefined) setFilterPosts(s.filterPosts);
-      if (s.filterComp    !== undefined) setFilterComp(s.filterComp);
-      if (s.filterPending !== undefined) setFilterPending(s.filterPending);
-      if (s.page          !== undefined) setPage(s.page);
-      if (s.pageSize      !== undefined) setPageSize(s.pageSize);
-      /* eslint-enable react-hooks/set-state-in-effect */
-    },
-    []
-  );
+  // On mount: mark the JS context as "active" so back-navigations can restore state.
+  // On first-ever mount (MOUNT_FLAG absent = hard refresh), also clear any stale sessionStorage.
+  useEffect(() => {
+    const w = window as Record<string, unknown>;
+    if (w[MOUNT_FLAG] !== true) sessionStorage.removeItem(STORAGE_KEY);
+    w[MOUNT_FLAG] = true;
+  }, []);
 
   // Persist state to sessionStorage on every change
   useEffect(() => {
