@@ -14,7 +14,8 @@ import UserCard from "./UserCard";
 import EmptyState from "./EmptyState";
 import Pagination from "./Pagination";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 10;
 
 interface Props {
   users: EnrichedUser[];
@@ -32,6 +33,9 @@ export default function UsersClient({ users }: Props) {
   const filterComp    = (searchParams.get("fc")        as CompletedFilter)  ?? "all";
   const filterPending = (searchParams.get("fpend")     as PendingFilter)    ?? "all";
   const page          = Number(searchParams.get("page") ?? "1");
+  const pageSize      = PAGE_SIZE_OPTIONS.includes(Number(searchParams.get("size")))
+    ? Number(searchParams.get("size"))
+    : DEFAULT_PAGE_SIZE;
 
   const hasActiveFilter =
     !!q.trim() ||
@@ -84,9 +88,9 @@ export default function UsersClient({ users }: Props) {
     return result;
   }, [users, q, sort, filterPosts, filterComp, filterPending]);
 
-  const totalPages = Math.max(1, Math.ceil(processed.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(processed.length / pageSize));
   const safePage   = Math.min(page, totalPages);
-  const slice      = processed.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const slice      = processed.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const handleSort = (key: SortKey) => {
     let nextSort: SortKey = key;
@@ -213,6 +217,31 @@ export default function UsersClient({ users }: Props) {
               <option value="no-pending">No pending</option>
             </select>
           </div>
+
+          {/* Display (per page) */}
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="page-size"
+              className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500"
+            >
+              Show
+            </label>
+            <select
+              id="page-size"
+              value={pageSize}
+              onChange={(e) => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("size", e.target.value);
+                params.set("page", "1");
+                router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+              }}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -248,6 +277,8 @@ export default function UsersClient({ users }: Props) {
           <Pagination
             page={safePage}
             totalPages={totalPages}
+            totalItems={processed.length}
+            pageSize={pageSize}
             onPageChange={handlePage}
           />
         </>
