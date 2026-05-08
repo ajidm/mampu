@@ -158,22 +158,10 @@ export default function UsersClient({ users }: Props) {
     <div className="space-y-4">
       {/* Controls — one cohesive bar */}
       <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
 
-          {/* Left: Search */}
-          <div className="relative w-full sm:max-w-xs">
-            <button
-              type="button"
-              aria-label="Submit search"
-              onClick={() => inputRef.current?.focus()}
-              className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-blue-500 focus:outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none"
-                viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-              </svg>
-            </button>
+          {/* Search input — icon on the right */}
+          <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
             <input
               ref={inputRef}
               type="search"
@@ -181,65 +169,77 @@ export default function UsersClient({ users }: Props) {
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1); }}
               aria-label="Search users"
-              className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+              className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-3 pr-9 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
             />
+            <button
+              type="button"
+              aria-label="Submit search"
+              onClick={() => inputRef.current?.focus()}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-500 focus:outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+            </button>
           </div>
 
-          {/* Right: Filters + Show — separated by a vertical divider on sm+ */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:border-l sm:border-gray-100 sm:pl-4">
+          {/* Vertical divider */}
+          <div className="hidden h-5 w-px bg-gray-200 sm:block" aria-hidden="true" />
 
-            {/* Filter group */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-300">Filter</span>
+          {/* Filter label */}
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-300">Filter</span>
 
-              <div className="flex items-center gap-1.5">
-                <label htmlFor="filter-posts" className={labelCls}>Posts</label>
-                <select id="filter-posts" value={filterPosts}
-                  onChange={(e) => { setFilterPosts(e.target.value as PostsFilter); setPage(1); }}
-                  className={selectCls}>
-                  <option value="all">All</option>
-                  <option value="has-posts">Has posts</option>
-                  <option value="no-posts">No posts</option>
-                </select>
-              </div>
+          {/* Posts */}
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="filter-posts" className={labelCls}>Posts</label>
+            <select id="filter-posts" value={filterPosts}
+              onChange={(e) => { setFilterPosts(e.target.value as PostsFilter); setPage(1); }}
+              className={selectCls}>
+              <option value="all">All</option>
+              <option value="has-posts">Has posts</option>
+              <option value="no-posts">No posts</option>
+            </select>
+          </div>
 
-              <div className="flex items-center gap-1.5">
-                <label htmlFor="filter-completed" className={labelCls}>Completed</label>
-                <select id="filter-completed" value={filterComp}
-                  onChange={(e) => { setFilterComp(e.target.value as CompletedFilter); setPage(1); }}
-                  className={selectCls}>
-                  <option value="all">All</option>
-                  <option value="has-completed">Has completed</option>
-                  <option value="no-completed">No completed</option>
-                </select>
-              </div>
+          {/* Completed */}
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="filter-completed" className={labelCls}>Completed</label>
+            <select id="filter-completed" value={filterComp}
+              onChange={(e) => { setFilterComp(e.target.value as CompletedFilter); setPage(1); }}
+              className={selectCls}>
+              <option value="all">All</option>
+              <option value="has-completed">Has completed</option>
+              <option value="no-completed">No completed</option>
+            </select>
+          </div>
 
-              <div className="flex items-center gap-1.5">
-                <label htmlFor="filter-pending" className={labelCls}>Pending</label>
-                <select id="filter-pending" value={filterPending}
-                  onChange={(e) => { setFilterPending(e.target.value as PendingFilter); setPage(1); }}
-                  className={selectCls}>
-                  <option value="all">All</option>
-                  <option value="has-pending">Has pending</option>
-                  <option value="no-pending">No pending</option>
-                </select>
-              </div>
-            </div>
+          {/* Pending */}
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="filter-pending" className={labelCls}>Pending</label>
+            <select id="filter-pending" value={filterPending}
+              onChange={(e) => { setFilterPending(e.target.value as PendingFilter); setPage(1); }}
+              className={selectCls}>
+              <option value="all">All</option>
+              <option value="has-pending">Has pending</option>
+              <option value="no-pending">No pending</option>
+            </select>
+          </div>
 
-            {/* Divider */}
-            <div className="hidden h-5 w-px bg-gray-200 sm:block" aria-hidden="true" />
+          {/* Vertical divider */}
+          <div className="hidden h-5 w-px bg-gray-200 sm:block" aria-hidden="true" />
 
-            {/* Show per page */}
-            <div className="flex items-center gap-1.5">
-              <label htmlFor="page-size" className={labelCls}>Show</label>
-              <select id="page-size" value={pageSize}
-                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                className={selectCls}>
-                {PAGE_SIZE_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </div>
+          {/* Show per page */}
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="page-size" className={labelCls}>Show</label>
+            <select id="page-size" value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              className={selectCls}>
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
           </div>
         </div>
 
