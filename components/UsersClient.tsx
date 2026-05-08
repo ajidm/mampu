@@ -46,6 +46,24 @@ interface Props {
   users: EnrichedUser[];
 }
 
+function Badge({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-200">
+      {label}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${label} filter`}
+        className="ml-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-700 focus:outline-none"
+      >
+        <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8" aria-hidden="true">
+          <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+        </svg>
+      </button>
+    </span>
+  );
+}
+
 export default function UsersClient({ users }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,17 +75,22 @@ export default function UsersClient({ users }: Props) {
   const [page,          setPage]          = useState(1);
   const [pageSize,      setPageSize]      = useState(DEFAULT_PAGE_SIZE);
 
-  // Restore state from sessionStorage after hydration
-  useEffect(() => {
-    const s = loadState();
-    if (s.q             !== undefined) setQ(s.q);
-    if (s.sort          !== undefined) setSort(s.sort);
-    if (s.filterPosts   !== undefined) setFilterPosts(s.filterPosts);
-    if (s.filterComp    !== undefined) setFilterComp(s.filterComp);
-    if (s.filterPending !== undefined) setFilterPending(s.filterPending);
-    if (s.page          !== undefined) setPage(s.page);
-    if (s.pageSize      !== undefined) setPageSize(s.pageSize);
-  }, []);
+  // Restore state from sessionStorage after hydration (client-only, runs once on mount)
+  useEffect(
+    () => {
+      const s = loadState();
+      /* eslint-disable react-hooks/set-state-in-effect */
+      if (s.q             !== undefined) setQ(s.q);
+      if (s.sort          !== undefined) setSort(s.sort);
+      if (s.filterPosts   !== undefined) setFilterPosts(s.filterPosts);
+      if (s.filterComp    !== undefined) setFilterComp(s.filterComp);
+      if (s.filterPending !== undefined) setFilterPending(s.filterPending);
+      if (s.page          !== undefined) setPage(s.page);
+      if (s.pageSize      !== undefined) setPageSize(s.pageSize);
+      /* eslint-enable react-hooks/set-state-in-effect */
+    },
+    []
+  );
 
   // Persist state to sessionStorage on every change
   useEffect(() => {
@@ -127,115 +150,123 @@ export default function UsersClient({ users }: Props) {
     setPage(1);
   };
 
+  const selectCls =
+    "rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors";
+  const labelCls = "shrink-0 text-xs font-medium text-gray-400";
+
   return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        {/* Search */}
-        <div className="relative w-full lg:max-w-xs">
-          <button
-            type="button"
-            aria-label="Submit search"
-            onClick={() => inputRef.current?.focus()}
-            className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-blue-500 focus:outline-none"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
-              />
-            </svg>
-          </button>
-          <input
-            ref={inputRef}
-            type="search"
-            placeholder="Search by name or email…"
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setPage(1); }}
-            aria-label="Search users"
-            className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
+      {/* Controls — one cohesive bar */}
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-        {/* Filters + display */}
-        <div className="flex flex-wrap gap-3">
-          {/* Posts */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="filter-posts" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Posts
-            </label>
-            <select
-              id="filter-posts"
-              value={filterPosts}
-              onChange={(e) => { setFilterPosts(e.target.value as PostsFilter); setPage(1); }}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          {/* Left: Search */}
+          <div className="relative w-full sm:max-w-xs">
+            <button
+              type="button"
+              aria-label="Submit search"
+              onClick={() => inputRef.current?.focus()}
+              className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-blue-500 focus:outline-none"
             >
-              <option value="all">All</option>
-              <option value="has-posts">Has posts</option>
-              <option value="no-posts">No posts</option>
-            </select>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+            </button>
+            <input
+              ref={inputRef}
+              type="search"
+              placeholder="Search by name or email…"
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              aria-label="Search users"
+              className="w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-sm placeholder-gray-400 shadow-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors"
+            />
           </div>
 
-          {/* Completed */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="filter-completed" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Completed
-            </label>
-            <select
-              id="filter-completed"
-              value={filterComp}
-              onChange={(e) => { setFilterComp(e.target.value as CompletedFilter); setPage(1); }}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="all">All</option>
-              <option value="has-completed">Has completed</option>
-              <option value="no-completed">No completed</option>
-            </select>
-          </div>
+          {/* Right: Filters + Show — separated by a vertical divider on sm+ */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:border-l sm:border-gray-100 sm:pl-4">
 
-          {/* Pending */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="filter-pending" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Pending
-            </label>
-            <select
-              id="filter-pending"
-              value={filterPending}
-              onChange={(e) => { setFilterPending(e.target.value as PendingFilter); setPage(1); }}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="all">All</option>
-              <option value="has-pending">Has pending</option>
-              <option value="no-pending">No pending</option>
-            </select>
-          </div>
+            {/* Filter group */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-300">Filter</span>
 
-          {/* Display per page */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="page-size" className="shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Show
-            </label>
-            <select
-              id="page-size"
-              value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              {PAGE_SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="filter-posts" className={labelCls}>Posts</label>
+                <select id="filter-posts" value={filterPosts}
+                  onChange={(e) => { setFilterPosts(e.target.value as PostsFilter); setPage(1); }}
+                  className={selectCls}>
+                  <option value="all">All</option>
+                  <option value="has-posts">Has posts</option>
+                  <option value="no-posts">No posts</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="filter-completed" className={labelCls}>Completed</label>
+                <select id="filter-completed" value={filterComp}
+                  onChange={(e) => { setFilterComp(e.target.value as CompletedFilter); setPage(1); }}
+                  className={selectCls}>
+                  <option value="all">All</option>
+                  <option value="has-completed">Has completed</option>
+                  <option value="no-completed">No completed</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <label htmlFor="filter-pending" className={labelCls}>Pending</label>
+                <select id="filter-pending" value={filterPending}
+                  onChange={(e) => { setFilterPending(e.target.value as PendingFilter); setPage(1); }}
+                  className={selectCls}>
+                  <option value="all">All</option>
+                  <option value="has-pending">Has pending</option>
+                  <option value="no-pending">No pending</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="hidden h-5 w-px bg-gray-200 sm:block" aria-hidden="true" />
+
+            {/* Show per page */}
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="page-size" className={labelCls}>Show</label>
+              <select id="page-size" value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                className={selectCls}>
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
+
+        {/* Active filter badges */}
+        {hasActiveFilter && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-2.5">
+            <span className="text-xs text-gray-400">Active:</span>
+            {q && (
+              <Badge label={`Search: "${q}"`} onRemove={() => { setQ(""); setPage(1); }} />
+            )}
+            {filterPosts !== "all" && (
+              <Badge label={`Posts: ${filterPosts}`} onRemove={() => { setFilterPosts("all"); setPage(1); }} />
+            )}
+            {filterComp !== "all" && (
+              <Badge label={`Completed: ${filterComp}`} onRemove={() => { setFilterComp("all"); setPage(1); }} />
+            )}
+            {filterPending !== "all" && (
+              <Badge label={`Pending: ${filterPending}`} onRemove={() => { setFilterPending("all"); setPage(1); }} />
+            )}
+            <button
+              onClick={clearAll}
+              className="ml-1 text-xs text-blue-500 hover:text-blue-700 hover:underline focus:outline-none"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {slice.length === 0 ? (
