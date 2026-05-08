@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { EnrichedUser, FilterKey, SortKey } from "@/lib/types";
 import UserTable from "./UserTable";
@@ -94,23 +94,59 @@ export default function UsersClient({ users }: Props) {
     router.replace(pathname, { scroll: false });
   };
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="space-y-4">
       {/* Controls */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input
-          type="search"
-          placeholder="Search by name or email…"
-          value={q}
-          onChange={(e) => handleSearch(e.target.value)}
-          aria-label="Search users"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:max-w-xs"
-        />
-        <div className="flex gap-2">
+        {/* Search with clickable icon */}
+        <div className="relative w-full sm:max-w-xs">
+          <button
+            type="button"
+            aria-label="Submit search"
+            onClick={() => inputRef.current?.focus()}
+            className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-blue-500 focus:outline-none"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+              />
+            </svg>
+          </button>
+          <input
+            ref={inputRef}
+            type="search"
+            placeholder="Search by name or email…"
+            value={q}
+            onChange={(e) => handleSearch(e.target.value)}
+            aria-label="Search users"
+            className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Filter with label */}
+        <div className="flex items-center gap-2">
+          <label
+            htmlFor="filter-select"
+            className="shrink-0 text-sm font-medium text-gray-600"
+          >
+            Filter
+          </label>
           <select
+            id="filter-select"
             value={filter}
             onChange={(e) => handleFilter(e.target.value as FilterKey)}
-            aria-label="Filter users"
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">All users</option>
